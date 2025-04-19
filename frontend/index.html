@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Portaria</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Solicitações Portaria</h1>
+
+        <button id="btnNovaSolicitacao" class="btn btn-primary mb-4">Nova Solicitação</button>
+
+        <div class="row mb-3" id="filtroCondominioContainer">
+            <div class="col-md-4">
+                <label for="filtroCondominio">Filtrar por Condomínio:</label>
+                <select class="form-select" id="filtroCondominio">
+                    <option value="">Todos os Condomínios</option>
+                    <!-- Opções serão adicionadas pelo JavaScript -->
+                </select>
+            </div>
+        </div>
+
+        <div id="formContainer" class="card mb-4 d-none">
+            <div class="card-body">
+                <h5 class="card-title">Formulário de Solicitação</h5>
+                <form id="solicitacaoForm">
+                    <input type="hidden" id="solicitacaoId">
+
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome Completo*</label>
+                        <input type="text" class="form-control" id="nome" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo de Visita*</label>
+                        <select class="form-select" id="tipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="Visitante">Visitante</option>
+                            <option value="Entrega">Entrega</option>
+                            <option value="Prestador">Prestador de Serviço</option>
+                            <option value="Convidado">Convidado</option>
+                            <option value="Corretor">Corretor</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="condominio" class="form-label">Condomínio</label>
+                      <select class="form-select" id="condominio">
+                          <option value="">Selecione um condomínio</option>
+                          <!-- Opções serão carregadas via JavaScript -->
+                      </select>
+                      <div class="mt-2">
+                          <button type="button" id="btnNovoCondominio" class="btn btn-sm btn-outline-primary">
+                              <i class="fas fa-plus"></i> Novo Condomínio
+                          </button>
+                      </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="dataVisita" class="form-label">Data/Hora da Visita</label>
+                            <input type="datetime-local" class="form-control" id="dataVisita">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dataExpiracao" class="form-label">Data/Hora de Expiração</label>
+                            <input type="datetime-local" class="form-control" id="dataExpiracao">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="placa" class="form-label">Placa do Veículo</label>
+                        <input type="text" class="form-control" id="placa" placeholder="ABC-1234">
+                    </div>
+
+                    <div class="form-group">
+                      <label for="observacoes">Observações</label>
+                      <textarea class="form-control limited-textarea" id="observacoes" name="observacoes" rows="4"></textarea>
+                  </div>
+
+                    <div class="mb-3">
+                        <label for="imagemInput" class="form-label">Imagem</label>
+                        <div class="input-group">
+                          <input type="file" class="form-control" id="imagemInput" accept=".jpg,.jpeg,.png,.gif">
+                          <button class="btn btn-outline-secondary" type="button" id="btnLimparImagem">Limpar</button>
+                        </div>
+                        <input type="hidden" id="imagemUrlHidden">
+                        <div class="mt-2">
+                          <img id="previewImagem" class="img-thumbnail d-none" style="max-height: 200px;">
+                        </div>
+                        <small class="form-text text-muted">Formatos aceitos: JPG, JPEG, PNG, GIF (máx. 16MB)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status*</label>
+                        <select class="form-select" id="status" required>
+                            <option value="pendente" selected>Pendente</option>
+                            <option value="confirmado">Confirmado</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+                </form>
+            </div>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Condomínio</th>
+                    <th>Nome</th>
+                    <th>Tipo</th>
+                    <th>Data Visita</th>
+                    <th>Data Expiração</th>
+                    <th>Placa Veículo</th>
+                    <th>Observações</th>
+                    <th>Imagem</th> 
+                    <th>Status</th>
+                    <th id="dataCriacaoHeader" style="cursor: pointer;">Data Criação <i class="fas fa-sort-down"></i></th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaSolicitacoes">
+                <!-- Dados serão carregados via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Modal para visualizar imagem -->
+<div class="modal fade" id="imagemModal" tabindex="-1" aria-labelledby="imagemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="imagemModalLabel">Visualização da Imagem</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="imagemModalConteudo" class="img-fluid" src="" alt="Imagem em tamanho maior">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    <!-- Modal para visualizar observações -->
+        <div class="modal fade" id="observacoesModal" tabindex="-1" aria-labelledby="observacoesModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="observacoesModalLabel">Observações - Solicitação #${id}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body" id="observacoesModalBody">
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="paginationContainer" class="container mt-3">
+            <div class="row">
+              <div class="col d-flex justify-content-between align-items-center">
+                <div>
+                  Mostrando <span id="totalItems">0</span> resultados
+                </div>
+                <div class="pagination-controls">
+                  <button id="prevPage" class="btn btn-outline-primary btn-sm" disabled>Anterior</button>
+                  <span class="mx-3">Página <span id="currentPage">1</span> de <span id="totalPages">1</span></span>
+                  <button id="nextPage" class="btn btn-outline-primary btn-sm" disabled>Próximo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+</body>
+</html>
