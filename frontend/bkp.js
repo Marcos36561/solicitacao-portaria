@@ -1,6 +1,8 @@
 const API_URL = 'http://192.168.1.20:5000/solicitacoes';
+const API_CONDOMINIOS_URL = 'http://192.168.1.20:5000/condominios';
 
 let todasSolicitacoes = [];
+let listaCondominios = [];
 
 // Configuração da paginação
 const itemsPerPage = 10; // Quantidade de itens por página
@@ -70,29 +72,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof bootstrap === 'undefined') {
         console.warn('Bootstrap não está disponível. Alguns recursos podem não funcionar.');
     }
-    
     carregarSolicitacoes();
+    carregarCondominios();
+    document.getElementById('btnNovoCondominio').addEventListener('click', adicionarNovoCondominio);
     document.getElementById('btnNovaSolicitacao').addEventListener('click', mostrarFormulario);
     document.getElementById('btnCancelar').addEventListener('click', esconderFormulario);
     document.getElementById('solicitacaoForm').addEventListener('submit', salvarSolicitacao);
     document.getElementById('imagemInput').addEventListener('change', previewImagem);
     document.getElementById('btnLimparImagem').addEventListener('click', limparImagem);
     document.getElementById('filtroCondominio').addEventListener('change', filtrarSolicitacoes);
-    
     document.getElementById('prevPage').addEventListener('click', () => {
         if (currentPage > 1) {
             currentPage--;
             exibirSolicitacoes();
         }
-    });
-    
+    });  
     document.getElementById('nextPage').addEventListener('click', () => {
         if (currentPage < totalPages) {
             currentPage++;
             exibirSolicitacoes();
         }
     });
-
     // Adicionar evento de clique no cabeçalho "Data Criação"
     const dataCriacaoHeader = document.getElementById('dataCriacaoHeader');
     if (dataCriacaoHeader) {
@@ -248,6 +248,68 @@ function filtrarSolicitacoes() {
     exibirSolicitacoes();
 }
 
+// Função para carregar a lista de condomínios
+async function carregarCondominios() {
+    try {
+        const response = await fetch(API_CONDOMINIOS_URL);
+        if (!response.ok) {
+            throw new Error('Erro ao carregar condominios');
+        }
+        
+        listaCondominios = await response.json();
+        
+        // Preencher o select de condomínios no formulário
+        preencherSelectCondominios(document.getElementById('condominio'), listaCondominios);
+        
+        // Também atualizar o filtro de condomínios
+        preencherFiltroCondominios(todasSolicitacoes);
+        
+    } catch (error) {
+        console.error("Erro ao carregar condomínios:", error);
+    }
+}
+
+// Função para preencher um select com a lista de condomínios
+function preencherSelectCondominios(selectElement, condominios) {
+    // Manter apenas a primeira opção (placeholder)
+    selectElement.innerHTML = '<option value="">Selecione um condomínio</option>';
+    
+    // Adicionar cada condomínio como uma opção
+    condominios.forEach(condominio => {
+        const option = document.createElement('option');
+        option.value = condominio;
+        option.textContent = condominio;
+        selectElement.appendChild(option);
+    });
+}
+
+// Função para adicionar um novo condomínio
+function adicionarNovoCondominio() {
+    const novoCondominio = window.prompt("Digite o nome do novo condomínio:");
+    
+    if (!novoCondominio || novoCondominio.trim() === '') {
+        return;
+    }
+    
+    const condominio = novoCondominio.trim();
+    
+    // Verificar se já existe
+    if (listaCondominios.includes(condominio)) {
+        alert("Este condomínio já existe!");
+        return;
+    }
+
+    // Adicionar à lista e atualizar o select
+    listaCondominios.push(condominio);
+    listaCondominios.sort(); // Manter a lista ordenada
+
+    // Atualizar os selects
+    preencherSelectCondominios(document.getElementById('condominio'), listaCondominios);
+
+    // Selecionar o novo condomínio
+    document.getElementById('condominio').value = condominio;
+}
+
 function preencherFiltroCondominios(solicitacoes) {
     const selectFiltro = document.getElementById('filtroCondominio');
     
@@ -390,6 +452,15 @@ async function salvarSolicitacao(event) {
 
         esconderFormulario();
         carregarSolicitacoes();
+
+        const condominio = document.getElementById('condominio').value;
+    
+        // Se for um novo condomínio, adicionar à lista
+        if (condominio && !listaCondominios.includes(condominio)) {
+            listaCondominios.push(condominio);
+            listaCondominios.sort();
+        }
+
         alert('Solicitação salva com sucesso!');
     } catch (error) {
         alert(`Erro: ${error.message}`);

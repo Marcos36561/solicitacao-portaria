@@ -1,5 +1,6 @@
 import pytz
 import os
+from config import config
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -197,6 +198,23 @@ def obter_solicitacao(id):
         return jsonify({"error": "Solicitação não encontrada"}), 404
     return jsonify(solicitacao.to_dict())
 
+# Rota para listar condomínios únicos
+@app.route('/condominios', methods=['GET'])
+def listar_condominios():
+    try:
+        # Buscar condomínios únicos da tabela de solicitações (não deletados)
+        condominios = db.session.query(Solicitacao.condominio).filter(
+            Solicitacao.is_deleted == False,
+            Solicitacao.condominio.isnot(None),  # Ignorar condomínios vazios
+            Solicitacao.condominio != ''  # Ignorar strings vazias
+        ).distinct().order_by(Solicitacao.condominio).all()
+        
+        # Extrair os valores da consulta e converter para lista
+        lista_condominios = [cond[0] for cond in condominios if cond[0]]
+        
+        return jsonify(lista_condominios), 200
+    except Exception as e:
+        return jsonify({"error": "Erro ao listar condomínios", "message": str(e)}), 500
 
 @app.route('/solicitacoes/<int:id>', methods=['PUT'])
 def atualizar_solicitacao(id):
@@ -282,4 +300,4 @@ def deletar_solicitacao(id):
 
 
 if __name__ == '__main__':
-    app.run(host='192.168.1.20', port=5000, debug=True)
+    app.run(host='192.168.1.20', port=5000)

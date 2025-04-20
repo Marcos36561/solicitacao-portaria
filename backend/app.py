@@ -1,5 +1,6 @@
 import pytz
 import os
+from config import config
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -31,13 +32,40 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 def get_current_time():
     return datetime.now(timezone('America/Sao_Paulo'))
 
+# Nova tabela de condomínios
+class Condominio(db.Model):
+    __tablename__ = 'condominio'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), unique=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    data_criacao = db.Column(db.DateTime, default=get_current_time)
+    
+    # Relacionamento com a tabela de solicitações
+    solicitacoes = db.relationship('Solicitacao', backref='condominio_ref', lazy=True)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nome": self.nome,
+            "is_active": self.is_active,
+            "data_criacao": self.data_criacao.strftime('%Y-%m-%d %H:%M:%S') if self.data_criacao else None,
+        }
+
+# Modificação da tabela Solicitacao para usar a chave estrangeira
 class Solicitacao(db.Model):
     __tablename__ = 'solicitacao'
 
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100))
     tipo = db.Column(db.String(50))
+    
+    # Campo para compatibilidade com dados legados
     condominio = db.Column(db.String(100))
+    
+    # Nova coluna de chave estrangeira
+    condominio_id = db.Column(db.Integer, db.ForeignKey('condominio.id'))
+    
     data_visita = db.Column(db.DateTime)
     data_expiracao = db.Column(db.DateTime)
     placa_veiculo = db.Column(db.String(20))
@@ -45,14 +73,19 @@ class Solicitacao(db.Model):
     imagem_url = db.Column(db.String(255))
     status = db.Column(db.String(50))
     is_deleted = db.Column(db.Boolean, default=False)
-    data_criacao = db.Column(db.DateTime, default=get_current_time)  # Alterado para usar função
+    data_criacao = db.Column(db.DateTime, default=get_current_time)
 
     def to_dict(self):
+        condominio_nome = self.condominio
+        if self.condominio_ref:
+            condominio_nome = self.condominio_ref.nome
+        
         return {
             "id": self.id,
             "nome": self.nome,
             "tipo": self.tipo,
-            "condominio": self.condominio,
+            "condominio": condominio_nome,
+            "condominio_id": self.condominio_id,
             "data_visita": self.data_visita.strftime('%Y-%m-%d %H:%M:%S') if self.data_visita else None,
             "data_expiracao": self.data_expiracao.strftime('%Y-%m-%d %H:%M:%S') if self.data_expiracao else None,
             "placa_veiculo": self.placa_veiculo,
@@ -78,7 +111,105 @@ def allowed_file(filename):
     return '.' in filename and \
        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Rota para upload de imagem
+# Rotas para gerenciar condomínios
+@app.route('/condominios', methods=['GET'])
+def listar_condominios():
+    try:
+        # Buscar todos os condomínios ativos
+        condominios = Condominio.query.filter_by(is_active=True).order_by(Condominio.nome).all()
+        
+        return jsonify([cond.to_dict() for cond in condominios]), 200
+    except Exception as e:
+        return jsonify({"error": "Erro ao listar condomínios", "message": str(e)}), 500
+
+@app.route('/condominios', methods=['POST'])
+def cadastrar_condominio():
+    try:
+        data = request.get_json()
+
+        # Verificar campos obrigatórios
+        if not data.get('nome'):
+            return jsonify({"error": "Nome do condomínio é obrigatório"}), 400
+
+        # Verificar se já existe um condomínio com o mesmo nome
+        condominio_existente = Condominio.query.filter_by(nome=data['nome']).first()
+        if condominio_existente:
+            return jsonify({"error": "Já existe um condomínio com este nome"}), 400
+
+        # Criar condomínio
+        novo_condominio = Condominio(
+            nome=data['nome']
+        )
+
+        db.session.add(novo_condominio)
+        db.session.commit()
+
+        return jsonify(novo_condominio.to_dict()), 201
+
+    except Exception as e:
+        return jsonify({"error": "Erro ao criar condomínio", "message": str(e)}), 500
+
+@app.route('/condominios/<int:id>', methods=['GET'])
+def obter_condominio(id):
+    condominio = Condominio.query.get(id)
+    if not condominio or not condominio.is_active:
+        return jsonify({"error": "Condomínio não encontrado"}), 404
+    return jsonify(condominio.to_dict())
+
+@app.route('/condominios/<int:id>', methods=['PUT'])
+def atualizar_condominio(id):
+    try:
+        data = request.get_json()
+
+        # Verificar se o condomínio existe
+        condominio = Condominio.query.get(id)
+        if not condominio:
+            return jsonify({"error": "Condomínio não encontrado"}), 404
+
+        # Verificar se o nome já existe em outro condomínio
+        if 'nome' in data and data['nome'] != condominio.nome:
+            condominio_existente = Condominio.query.filter_by(nome=data['nome']).first()
+            if condominio_existente:
+                return jsonify({"error": "Já existe um condomínio com este nome"}), 400
+
+        # Atualizar dados
+        if 'nome' in data:
+            condominio.nome = data['nome']
+        if 'is_active' in data:
+            condominio.is_active = data['is_active']
+
+        db.session.commit()
+
+        return jsonify(condominio.to_dict()), 200
+
+    except Exception as e:
+        return jsonify({"error": "Erro ao atualizar condomínio", "message": str(e)}), 500
+
+@app.route('/condominios/<int:id>', methods=['DELETE'])
+def deletar_condominio(id):
+    try:
+        condominio = Condominio.query.get(id)
+        if not condominio:
+            return jsonify({"error": "Condomínio não encontrado"}), 404
+
+        # Verificar se existem solicitações ativas associadas a este condomínio
+        solicitacoes_ativas = Solicitacao.query.filter_by(condominio_id=id, is_deleted=False).count()
+        if solicitacoes_ativas > 0:
+            return jsonify({
+                "error": "Não é possível excluir este condomínio pois existem solicitações associadas a ele",
+                "count": solicitacoes_ativas
+            }), 400
+
+        # Desativar o condomínio ao invés de excluir
+        condominio.is_active = False
+        db.session.commit()
+
+        return jsonify({"message": "Condomínio desativado com sucesso"}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Erro ao deletar condomínio", "message": str(e)}), 500
+
+# Rota para upload de imagem (sem alterações)
 @app.route('/solicitacoes/upload', methods=['POST'])
 def upload_file():
     try:
@@ -109,12 +240,12 @@ def upload_file():
     except Exception as e:
         return jsonify({"error": "Erro no upload", "message": str(e)}), 500
 
-# Rota para servir as imagens
+# Rota para servir as imagens (sem alterações)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-
+# Atualização da rota para cadastrar solicitação
 @app.route('/solicitacoes', methods=['POST'])
 def cadastrar_solicitacao():
     try:
@@ -157,7 +288,8 @@ def cadastrar_solicitacao():
         nova_solicitacao = Solicitacao(
             nome=data['nome'],
             tipo=data['tipo'],
-            condominio=data.get('condominio'),
+            condominio_id=data.get('condominio_id'),
+            condominio=data.get('condominio'),  # Para compatibilidade 
             data_visita=data_visita,
             data_expiracao=data_expiracao,
             placa_veiculo=data.get('placa_veiculo'),
@@ -175,7 +307,6 @@ def cadastrar_solicitacao():
         return jsonify({"error": "Erro ao criar solicitação", "message": str(e)}), 500
 
 
-# Rota para listar todas as solicitações
 @app.route('/solicitacoes', methods=['GET'])
 def listar_solicitacoes():
     try:
@@ -197,24 +328,6 @@ def obter_solicitacao(id):
         return jsonify({"error": "Solicitação não encontrada"}), 404
     return jsonify(solicitacao.to_dict())
 
-# Rota para listar condomínios únicos
-@app.route('/condominios', methods=['GET'])
-def listar_condominios():
-    try:
-        # Buscar condomínios únicos da tabela de solicitações (não deletados)
-        condominios = db.session.query(Solicitacao.condominio).filter(
-            Solicitacao.is_deleted == False,
-            Solicitacao.condominio.isnot(None),  # Ignorar condomínios vazios
-            Solicitacao.condominio != ''  # Ignorar strings vazias
-        ).distinct().order_by(Solicitacao.condominio).all()
-        
-        # Extrair os valores da consulta e converter para lista
-        lista_condominios = [cond[0] for cond in condominios if cond[0]]
-        
-        return jsonify(lista_condominios), 200
-    except Exception as e:
-        return jsonify({"error": "Erro ao listar condomínios", "message": str(e)}), 500
-
 @app.route('/solicitacoes/<int:id>', methods=['PUT'])
 def atualizar_solicitacao(id):
     try:
@@ -228,10 +341,19 @@ def atualizar_solicitacao(id):
         # Atualizar dados
         solicitacao.nome = data.get('nome', solicitacao.nome)
         solicitacao.tipo = data.get('tipo', solicitacao.tipo)
-        solicitacao.condominio = data.get('condominio', solicitacao.condominio)
+        
+        # Atualização do condomínio - priorizar o ID se estiver presente
+        if 'condominio_id' in data:
+            solicitacao.condominio_id = data['condominio_id']
+            if data['condominio_id']:
+                condominio = Condominio.query.get(data['condominio_id'])
+                if condominio:
+                    solicitacao.condominio = condominio.nome
+        elif 'condominio' in data:
+            solicitacao.condominio = data['condominio']
+        
         solicitacao.placa_veiculo = data.get('placa_veiculo', solicitacao.placa_veiculo)
         solicitacao.observacoes = data.get('observacoes', solicitacao.observacoes)
-
 
         # Tratar imagem_url
         if 'imagem_url' in data:
@@ -280,7 +402,6 @@ def atualizar_solicitacao(id):
         return jsonify({"error": "Erro ao atualizar solicitação", "message": str(e)}), 500
 
 
-
 @app.route('/solicitacoes/<int:id>', methods=['DELETE'])
 def deletar_solicitacao(id):
     try:
@@ -299,4 +420,4 @@ def deletar_solicitacao(id):
 
 
 if __name__ == '__main__':
-    app.run(host='192.168.1.20', port=5000, debug=True)
+    app.run(host='192.168.1.20', port=5000)

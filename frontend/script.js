@@ -256,7 +256,10 @@ async function carregarCondominios() {
             throw new Error('Erro ao carregar condominios');
         }
         
-        listaCondominios = await response.json();
+        const condominiosData = await response.json();
+
+        // Extrair apenas os nomes dos condomínios para manter compatibilidade com o código existente
+        listaCondominios = condominiosData.map(cond => cond.nome);
         
         // Preencher o select de condomínios no formulário
         preencherSelectCondominios(document.getElementById('condominio'), listaCondominios);
@@ -284,7 +287,7 @@ function preencherSelectCondominios(selectElement, condominios) {
 }
 
 // Função para adicionar um novo condomínio
-function adicionarNovoCondominio() {
+async function adicionarNovoCondominio() {
     const novoCondominio = window.prompt("Digite o nome do novo condomínio:");
     
     if (!novoCondominio || novoCondominio.trim() === '') {
@@ -299,15 +302,35 @@ function adicionarNovoCondominio() {
         return;
     }
 
-    // Adicionar à lista e atualizar o select
-    listaCondominios.push(condominio);
-    listaCondominios.sort(); // Manter a lista ordenada
+    try {
+        // Enviar para o servidor
+        const response = await fetch(API_CONDOMINIOS_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nome: condominio })
+        });
 
-    // Atualizar os selects
-    preencherSelectCondominios(document.getElementById('condominio'), listaCondominios);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao salvar condomínio');
+        }
 
-    // Selecionar o novo condomínio
-    document.getElementById('condominio').value = condominio;
+        const novoCond = await response.json();
+
+        // Recarregar a lista de condomínios do servidor para garantir que temos os dados atualizados
+        await carregarCondominios();
+
+        // Selecionar o novo condomínio no select
+        document.getElementById('condominio').value = novoCond.nome;
+        
+        alert('Condomínio adicionado com sucesso!');
+
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+        console.error('Erro detalhado:', error);
+    }
 }
 
 function preencherFiltroCondominios(solicitacoes) {
