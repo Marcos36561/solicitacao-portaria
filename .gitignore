@@ -24,4 +24,4 @@ backend/uploads/*
 
 # sistema
 .DS_Store
-Thumbs.db
+Thumbs.db.vscode/
