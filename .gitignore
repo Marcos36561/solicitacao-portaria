@@ -1,0 +1,27 @@
+# ambiente virtual
+.venv/
+venv/
+
+# cache python
+__pycache__/
+**.pyc
+**.pyo
+
+# variáveis de ambiente
+.env
+
+# banco local
+**.db
+**.sqlite3
+
+# uploads de arquivos
+uploads/
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE
+.vscode/
+
+# sistema
+.DS_Store
+Thumbs.db

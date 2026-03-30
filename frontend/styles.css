@@ -1,23 +1,91 @@
 /* Estilo para imagens clicáveis */
 img.img-thumbnail {
     transition: transform 0.2s;
-  }
-  
-  img.img-thumbnail:hover {
+}
+
+img.img-thumbnail:hover {
     transform: scale(1.05);
-  }
-  
-  /* Assegura que a imagem de prévia no formulário indique que é clicável */
-  #previewImagem:not(.d-none) {
+}
+
+/* ========================
+   PDF - Thumbnail na tabela
+   ======================== */
+.pdf-thumb {
+    width: 50px;
+    height: 50px;
+    background-color: #dc3545;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+}
+
+.pdf-thumb:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    color: white;
+}
+
+/* ========================
+   PDF - Preview no formulário
+   ======================== */
+.pdf-preview-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    max-width: 300px;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s;
+}
+
+.pdf-preview-card:hover {
+    background-color: #fecaca;
+    color: inherit;
+    text-decoration: none;
+}
+
+.pdf-preview-card i {
+    font-size: 32px;
+    color: #dc2626;
+}
+
+.pdf-preview-card .pdf-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.pdf-preview-card .pdf-info strong {
+    font-size: 14px;
+    color: #333;
+}
+
+.pdf-preview-card .pdf-info small {
+    font-size: 11px;
+    color: #666;
+}
+
+/* Assegura que a imagem de prévia no formulário indique que é clicável */
+#previewImagem:not(.d-none) {
     cursor: pointer;
     border: 2px solid #ccc;
-  }
-  
-  #previewImagem:not(.d-none):hover {
-    border-color: #007bff;
-  }
+}
 
-  .tooltip-inner {
+#previewImagem:not(.d-none):hover {
+    border-color: #007bff;
+}
+
+.tooltip-inner {
     max-width: 300px !important;
     white-space: pre-wrap !important;
     text-align: left !important;
@@ -29,43 +97,43 @@ img.img-thumbnail {
 }
 
 .pagination-container {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
 }
 
 .pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .pagination-controls button {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  background-color: #f8f9fa;
-  cursor: pointer;
-  border-radius: 4px;
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    border-radius: 4px;
 }
 
 .pagination-controls button:hover:not([disabled]) {
-  background-color: #e9ecef;
+    background-color: #e9ecef;
 }
 
 .pagination-controls button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 #page-info {
-  font-size: 14px;
+    font-size: 14px;
 }
 
 .limited-textarea {
-  resize: vertical; /* Permite redimensionar apenas verticalmente */
-  max-height: 300px; /* Limite máximo de altura */
-  min-height: 100px; /* Altura mínima */
-  max-width: 100%; /* Limite máximo de largura (100% do contêiner) */
-  min-width: 200px; /* Largura mínima */
-  overflow-y: auto; /* Adiciona barra de rolagem vertical se o texto exceder */
+    resize: vertical;
+    max-height: 300px;
+    min-height: 100px;
+    max-width: 100%;
+    min-width: 200px;
+    overflow-y: auto;
 }

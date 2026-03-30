@@ -5,12 +5,26 @@ let todasSolicitacoes = [];
 let listaCondominios = [];
 
 // Configuração da paginação
-const itemsPerPage = 10; // Quantidade de itens por página
+const itemsPerPage = 10;
 let currentPage = 1;
 let totalPages = 0;
 
 // Estado de ordenação
-let sortDirection = 'descending'; // Inicialmente ordena por data_criacao decrescente
+let sortDirection = 'descending';
+
+// ========================
+// FUNÇÃO AUXILIAR PARA PDF
+// ========================
+function isPdf(url) {
+    if (!url) return false;
+    // Verifica data URL de PDF
+    if (url.startsWith('data:application/pdf')) return true;
+    // Verifica extensão .pdf na URL
+    if (url.toLowerCase().endsWith('.pdf')) return true;
+    // Verifica se contém .pdf antes de query params
+    if (/\.pdf(\?|$)/i.test(url)) return true;
+    return false;
+}
 
 // Funções de formatação de data
 function formatarDataExibicao(dataString) {
@@ -38,12 +52,6 @@ function isSolicitacaoExpirada(solicitacao) {
 }
 
 function abrirObservacoesModal(id, observacoes, condominio = '') {
-    if (!document.getElementById('observacoesModal')) {
-        const modalDiv = document.createElement('div');
-        modalDiv.innerHTML = modalHTML;
-        document.body.appendChild(modalDiv.firstChild);
-    }
-
     document.getElementById('observacoesModalLabel').textContent = `Observações - Solicitação #${id} ${condominio ? `- ${condominio}` : ''}`;
     
     document.getElementById('observacoesModalBody').innerHTML = `
@@ -55,12 +63,21 @@ function abrirObservacoesModal(id, observacoes, condominio = '') {
         const modal = new bootstrap.Modal(document.getElementById('observacoesModal'));
         modal.show();
     } else {
-        console.error('Bootstrap não está disponível. Verifique se o script do Bootstrap foi carregado.');
         alert('Observações: ' + observacoes);
     }
 }
 
+// ========================
+// MODAL DE IMAGEM (com correção PDF)
+// ========================
 function abrirImagemModal(url) {
+    // Se for PDF, abre em nova guia em vez do modal
+    if (isPdf(url)) {
+        window.open(url, '_blank');
+        return;
+    }
+
+    // Se for imagem, abre no modal normalmente
     const imagemModal = document.getElementById('imagemModalConteudo');
     imagemModal.src = url;
     
@@ -78,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnNovaSolicitacao').addEventListener('click', mostrarFormulario);
     document.getElementById('btnCancelar').addEventListener('click', esconderFormulario);
     document.getElementById('solicitacaoForm').addEventListener('submit', salvarSolicitacao);
-    document.getElementById('imagemInput').addEventListener('change', previewImagem);
+    document.getElementById('imagemInput').addEventListener('change', handlePreviewImagem);
     document.getElementById('btnLimparImagem').addEventListener('click', limparImagem);
     document.getElementById('filtroCondominio').addEventListener('change', filtrarSolicitacoes);
     document.getElementById('prevPage').addEventListener('click', () => {
@@ -103,28 +120,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function previewImagem(e) {
-    const previewImagem = document.getElementById('previewImagem');
+// ========================
+// PREVIEW DE IMAGEM/PDF NO FORMULÁRIO (CORRIGIDO)
+// ========================
+function handlePreviewImagem(e) {
+    const previewImg = document.getElementById('previewImagem');
+    const previewPdf = document.getElementById('previewPdf');
     const file = e.target.files[0];
     
     if (file) {
         const reader = new FileReader();
         
         reader.onload = function(e) {
-            previewImagem.src = e.target.result;
-            previewImagem.classList.remove('d-none');
+            const dataUrl = e.target.result;
+
+            if (isPdf(dataUrl)) {
+                // É PDF: esconde img, mostra card de PDF
+                previewImg.classList.add('d-none');
+                previewImg.src = '';
+                previewPdf.href = dataUrl;
+                previewPdf.classList.remove('d-none');
+            } else {
+                // É imagem: esconde card PDF, mostra img
+                previewPdf.classList.add('d-none');
+                previewPdf.href = '#';
+                previewImg.src = dataUrl;
+                previewImg.classList.remove('d-none');
+            }
         };
         
         reader.readAsDataURL(file);
     } else {
-        previewImagem.classList.add('d-none');
+        previewImg.classList.add('d-none');
+        previewImg.src = '';
+        previewPdf.classList.add('d-none');
+        previewPdf.href = '#';
     }
 }
 
 function limparImagem() {
     document.getElementById('imagemInput').value = '';
     document.getElementById('imagemUrlHidden').value = '';
-    document.getElementById('previewImagem').classList.add('d-none');
+    
+    const previewImg = document.getElementById('previewImagem');
+    previewImg.src = '';
+    previewImg.classList.add('d-none');
+    
+    const previewPdf = document.getElementById('previewPdf');
+    previewPdf.classList.add('d-none');
+    previewPdf.href = '#';
 }
 
 async function carregarSolicitacoes() {
@@ -145,7 +189,6 @@ async function carregarSolicitacoes() {
 
 function exibirSolicitacoes() {
     const filtroCondominio = document.getElementById('filtroCondominio').value;
-    console.log("Filtro selecionado:", filtroCondominio);
     
     let solicitacoesFiltradas;
     
@@ -181,10 +224,21 @@ function exibirSolicitacoes() {
     itensPagina.forEach(solicitacao => {
         const tr = document.createElement('tr');
 
+        // ========================
+        // COLUNA DE IMAGEM - CORREÇÃO DO PDF
+        // ========================
         let imagemCell = '';
         if (solicitacao.imagem_url) {
-            imagemCell = `<img src="${solicitacao.imagem_url}" class="img-thumbnail" style="height: 50px; cursor: pointer;" 
-                        onclick="abrirImagemModal('${solicitacao.imagem_url}')">`;
+            if (isPdf(solicitacao.imagem_url)) {
+                // PDF: mostra ícone vermelho e abre em NOVA GUIA
+                imagemCell = `<a href="${solicitacao.imagem_url}" target="_blank" rel="noopener noreferrer" class="pdf-thumb" title="Abrir PDF em nova guia">
+                    <i class="fas fa-file-pdf"></i>
+                </a>`;
+            } else {
+                // Imagem: mostra thumbnail e abre no modal
+                imagemCell = `<img src="${solicitacao.imagem_url}" class="img-thumbnail" style="height: 50px; cursor: pointer;" 
+                    onclick="abrirImagemModal('${solicitacao.imagem_url}')" title="Clique para ampliar">`;
+            }
         } else {
             imagemCell = '<i class="fas fa-image text-muted"></i>';
         }
@@ -194,7 +248,7 @@ function exibirSolicitacoes() {
         
         const observacoesCell = observacoesCompletas ? 
             `<div class="d-flex align-items-center">
-                <span class="text-truncate" style="max-width: 150px;" data-bs-toggle="tooltip" title="${observacoesCompletas.replace(/"/g, '"')}">${observacoesTruncadas}</span>
+                <span class="text-truncate" style="max-width: 150px;" data-bs-toggle="tooltip" title="${observacoesCompletas.replace(/"/g, '&quot;')}">${observacoesTruncadas}</span>
                 <button class="btn btn-sm btn-info ms-2" onclick="abrirObservacoesModal('${solicitacao.id}', '${observacoesCompletas.replace(/'/g, "\\'").replace(/"/g, '\\"')}', '${solicitacao.condominio || ''}')">
                     <i class="fas fa-eye"></i>
                 </button>
@@ -258,13 +312,9 @@ async function carregarCondominios() {
         
         const condominiosData = await response.json();
 
-        // Extrair apenas os nomes dos condomínios para manter compatibilidade com o código existente
         listaCondominios = condominiosData.map(cond => cond.nome);
         
-        // Preencher o select de condomínios no formulário
         preencherSelectCondominios(document.getElementById('condominio'), listaCondominios);
-        
-        // Também atualizar o filtro de condomínios
         preencherFiltroCondominios(todasSolicitacoes);
         
     } catch (error) {
@@ -272,12 +322,9 @@ async function carregarCondominios() {
     }
 }
 
-// Função para preencher um select com a lista de condomínios
 function preencherSelectCondominios(selectElement, condominios) {
-    // Manter apenas a primeira opção (placeholder)
     selectElement.innerHTML = '<option value="">Selecione um condomínio</option>';
     
-    // Adicionar cada condomínio como uma opção
     condominios.forEach(condominio => {
         const option = document.createElement('option');
         option.value = condominio;
@@ -286,7 +333,6 @@ function preencherSelectCondominios(selectElement, condominios) {
     });
 }
 
-// Função para adicionar um novo condomínio
 async function adicionarNovoCondominio() {
     const novoCondominio = window.prompt("Digite o nome do novo condomínio:");
     
@@ -296,14 +342,12 @@ async function adicionarNovoCondominio() {
     
     const condominio = novoCondominio.trim();
     
-    // Verificar se já existe
     if (listaCondominios.includes(condominio)) {
         alert("Este condomínio já existe!");
         return;
     }
 
     try {
-        // Enviar para o servidor
         const response = await fetch(API_CONDOMINIOS_URL, {
             method: 'POST',
             headers: {
@@ -319,10 +363,8 @@ async function adicionarNovoCondominio() {
 
         const novoCond = await response.json();
 
-        // Recarregar a lista de condomínios do servidor para garantir que temos os dados atualizados
         await carregarCondominios();
 
-        // Selecionar o novo condomínio no select
         document.getElementById('condominio').value = novoCond.nome;
         
         alert('Condomínio adicionado com sucesso!');
@@ -478,7 +520,6 @@ async function salvarSolicitacao(event) {
 
         const condominio = document.getElementById('condominio').value;
     
-        // Se for um novo condomínio, adicionar à lista
         if (condominio && !listaCondominios.includes(condominio)) {
             listaCondominios.push(condominio);
             listaCondominios.sort();
@@ -491,21 +532,19 @@ async function salvarSolicitacao(event) {
     }
 }
 
+// ========================
+// EDITAR (com correção PDF no preview)
+// ========================
 async function editarSolicitacao(id) {
-    console.log("Função editarSolicitacao chamada com id:", id);
-
     try {
-        console.log("Tentando fazer fetch da solicitação");
         const response = await fetch(`${API_URL}/${id}`);
         
         if (!response.ok) {
-            console.error("Resposta da API não ok:", response.status, response.statusText);
             const error = await response.json();
             throw new Error(error.message || "Erro ao carregar");
         }
         
         const data = await response.json();
-        console.log("Dados da solicitação recebidos:", data);
 
         function formatarParaInput(dataString) {
             if (!dataString) return '';
@@ -516,7 +555,6 @@ async function editarSolicitacao(id) {
 
         const tabela = document.getElementById('tabelaSolicitacoes');
         if (tabela) {
-            console.log("Ocultando a tabela");
             tabela.classList.add('d-none');
         }
 
@@ -524,33 +562,48 @@ async function editarSolicitacao(id) {
 
         const filtroContainer = document.getElementById('filtroCondominioContainer');
         if (filtroContainer) {
-            console.log("Ocultando filtro de condomínios");
             filtroContainer.classList.add('d-none');
         }
 
-        console.log("Preenchendo formulário com dados da solicitação");
-        document.getElementById('tabelaSolicitacoes').classList.add('d-none');
         document.getElementById('solicitacaoId').value = data.id;
         document.getElementById('nome').value = data.nome || '';
         document.getElementById('tipo').value = data.tipo || '';
         document.getElementById('condominio').value = data.condominio || '';
-        document.getElementById('dataVisita').value = formatarParaInput(data.data_visita)|| '';
-        document.getElementById('dataExpiracao').value = formatarParaInput(data.data_expiracao)|| '';
+        document.getElementById('dataVisita').value = formatarParaInput(data.data_visita) || '';
+        document.getElementById('dataExpiracao').value = formatarParaInput(data.data_expiracao) || '';
         document.getElementById('placa').value = data.placa_veiculo || '';
         document.getElementById('observacoes').value = data.observacoes || '';
         document.getElementById('imagemUrlHidden').value = data.imagem_url || '';
-        const previewImagem = document.getElementById('previewImagem');
         document.getElementById('status').value = data.status || 'pendente';
 
-        console.log("Mostrando o formulário");
-        document.getElementById('formContainer').classList.remove('d-none');
+        // ========================
+        // PREVIEW - CORREÇÃO DO PDF
+        // ========================
+        const previewImg = document.getElementById('previewImagem');
+        const previewPdf = document.getElementById('previewPdf');
 
         if (data.imagem_url) {
-            previewImagem.src = data.imagem_url;
-            previewImagem.classList.remove('d-none');
+            if (isPdf(data.imagem_url)) {
+                // É PDF: esconde img, mostra card de PDF
+                previewImg.classList.add('d-none');
+                previewImg.src = '';
+                previewPdf.href = data.imagem_url;
+                previewPdf.classList.remove('d-none');
+            } else {
+                // É imagem: esconde card PDF, mostra img
+                previewPdf.classList.add('d-none');
+                previewPdf.href = '#';
+                previewImg.src = data.imagem_url;
+                previewImg.classList.remove('d-none');
+            }
         } else {
-            previewImagem.classList.add('d-none');
+            previewImg.classList.add('d-none');
+            previewImg.src = '';
+            previewPdf.classList.add('d-none');
+            previewPdf.href = '#';
         }
+
+        document.getElementById('formContainer').classList.remove('d-none');
 
     } catch (error) {
         console.error("Erro detalhado:", error);
