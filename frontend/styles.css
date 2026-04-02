@@ -137,3 +137,38 @@ img.img-thumbnail:hover {
     min-width: 200px;
     overflow-y: auto;
 }
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .form-control, .form-select {
+        font-size: 16px; /* Evita zoom no iOS */
+    }
+
+    .pagination-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .pagination-controls span {
+        order: -1;
+    }
+}
+
+.table td {
+    word-wrap: break-word;
+    max-width: 200px;
+}
