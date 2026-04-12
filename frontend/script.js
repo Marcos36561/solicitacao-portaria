@@ -1,11 +1,12 @@
-const API_URL = 'http:
-const API_CONDOMINIOS_URL = 'http:
+const API_URL = 'http://localhost:5000/solicitacoes';
+const API_CONDOMINIOS_URL = 'http://localhost:5000/condominios';
 let todasSolicitacoes = [];
 let listaCondominios = [];
 const itemsPerPage = 10;
 let currentPage = 1;
 let totalPages = 0;
 let sortDirection = 'descending';
+
 function isPdf(url) {
     if (!url) return false;
     if (url.startsWith('data:application/pdf')) return true;
@@ -13,6 +14,7 @@ function isPdf(url) {
     if (/\.pdf(\?|$)/i.test(url)) return true;
     return false;
 }
+
 function formatarDataExibicao(dataString) {
     if (!dataString) return 'N/A';
     const [datePart, timePart] = dataString.split(' ');
@@ -20,11 +22,13 @@ function formatarDataExibicao(dataString) {
     const [hours, minutes] = timePart.split(':');
     return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
+
 function truncarTexto(texto, tamanhoMaximo = 30) {
     if (!texto) return '';
     if (texto.length <= tamanhoMaximo) return texto;
     return texto.substring(0, tamanhoMaximo) + '...';
 }
+
 function isSolicitacaoExpirada(solicitacao) {
     if (solicitacao.status === 'confirmado' || !solicitacao.data_expiracao) {
         return false;
@@ -33,7 +37,9 @@ function isSolicitacaoExpirada(solicitacao) {
     const dataAtual = new Date();
     return dataAtual > dataExpiracao;
 }
-function abrirObservacoesModal(id, observacoes, condominio = '') {
+
+function abrirObservacoesModal(id, observacoes, condominio = '') 
+{
     document.getElementById('observacoesModalLabel').textContent = `Observações - Solicitação #${id} ${condominio ? `- ${condominio}` : ''}`;
     document.getElementById('observacoesModalBody').innerHTML = `
         <div class="observacoes-content" style="white-space: pre-wrap;">${observacoes.replace(/\n/g, '<br>')}</div>
@@ -46,6 +52,7 @@ function abrirObservacoesModal(id, observacoes, condominio = '') {
         alert('Observações: ' + observacoes);
     }
 }
+
 function abrirImagemModal(url) {
     if (isPdf(url)) {
         window.open(url, '_blank');
@@ -56,6 +63,7 @@ function abrirImagemModal(url) {
     const modal = new bootstrap.Modal(document.getElementById('imagemModal'));
     modal.show();
 }
+
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof bootstrap === 'undefined') {
         console.warn('Bootstrap não está disponível. Alguns recursos podem não funcionar.');
@@ -89,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 function handlePreviewImagem(e) {
     const previewImg = document.getElementById('previewImagem');
     const previewPdf = document.getElementById('previewPdf');
@@ -117,6 +126,7 @@ function handlePreviewImagem(e) {
         previewPdf.href = '#';
     }
 }
+
 function limparImagem() {
     document.getElementById('imagemInput').value = '';
     document.getElementById('imagemUrlHidden').value = '';
@@ -127,6 +137,7 @@ function limparImagem() {
     previewPdf.classList.add('d-none');
     previewPdf.href = '#';
 }
+
 async function carregarSolicitacoes() {
     try {
         const response = await fetch(API_URL);
@@ -140,6 +151,7 @@ async function carregarSolicitacoes() {
         alert("Erro ao carregar solicitações: " + error.message);
     }
 }
+
 function exibirSolicitacoes() {
     const filtroCondominio = document.getElementById('filtroCondominio').value;
     let solicitacoesFiltradas;
@@ -224,10 +236,12 @@ function exibirSolicitacoes() {
         dataCriacaoHeader.innerHTML = `Data Criação <i class="fas fa-sort-${sortDirection === 'ascending' ? 'up' : 'down'}"></i>`;
     }
 }
+
 function filtrarSolicitacoes() {
     currentPage = 1;
     exibirSolicitacoes();
 }
+
 async function carregarCondominios() {
     try {
         const response = await fetch(API_CONDOMINIOS_URL);
@@ -242,6 +256,7 @@ async function carregarCondominios() {
         console.error("Erro ao carregar condomínios:", error);
     }
 }
+
 function preencherSelectCondominios(selectElement, condominios) {
     selectElement.innerHTML = '<option value="">Selecione um condomínio</option>';
     condominios.forEach(condominio => {
@@ -251,6 +266,7 @@ function preencherSelectCondominios(selectElement, condominios) {
         selectElement.appendChild(option);
     });
 }
+
 async function adicionarNovoCondominio() {
     const novoCondominio = window.prompt("Digite o nome do novo condomínio:");
     if (!novoCondominio || novoCondominio.trim() === '') {
@@ -282,6 +298,7 @@ async function adicionarNovoCondominio() {
         console.error('Erro detalhado:', error);
     }
 }
+
 function preencherFiltroCondominios(solicitacoes) {
     const selectFiltro = document.getElementById('filtroCondominio');
     if (!selectFiltro) {
@@ -302,6 +319,7 @@ function preencherFiltroCondominios(solicitacoes) {
         selectFiltro.appendChild(option);
     });    
 }
+
 function mostrarFormulario() {
     document.getElementById('tabelaSolicitacoes').classList.add('d-none');
     document.getElementById('paginationContainer').classList.add('d-none');
@@ -313,6 +331,7 @@ function mostrarFormulario() {
     document.getElementById('solicitacaoId').value = '';
     document.getElementById('solicitacaoForm').reset();
 }
+
 function esconderFormulario() {
     document.getElementById('formContainer').classList.add('d-none');
     document.getElementById('tabelaSolicitacoes').classList.remove('d-none');
@@ -322,6 +341,7 @@ function esconderFormulario() {
         filtroContainer.classList.remove('d-none');
     }
 }
+
 async function uploadImagem(file) {
     const formData = new FormData();
     formData.append('file', file);
@@ -342,6 +362,7 @@ async function uploadImagem(file) {
         return null;
     }
 }
+
 async function salvarSolicitacao(event) {
     event.preventDefault();
     const formatarDataParaBackend = (dataInput) => {
@@ -410,6 +431,7 @@ async function salvarSolicitacao(event) {
         console.error('Erro detalhado:', error);
     }
 }
+
 async function editarSolicitacao(id) {
     try {
         const response = await fetch(`${API_URL}/${id}`);
@@ -471,6 +493,7 @@ async function editarSolicitacao(id) {
         document.getElementById('paginationContainer').classList.remove('d-none');
     }
 }
+
 async function excluirSolicitacao(id) {
     if (!confirm('Tem certeza que deseja excluir esta solicitação?')) return;
     try {
@@ -484,6 +507,7 @@ async function excluirSolicitacao(id) {
         alert('Erro: ' + error.message);
     }
 }
+
 function getStatusClass(status) {
     const classes = {
         pendente: 'bg-warning text-dark',
@@ -492,6 +516,7 @@ function getStatusClass(status) {
     };
     return classes[status] || 'bg-secondary';
 }
+
 window.abrirObservacoesModal = abrirObservacoesModal;
 window.editarSolicitacao = editarSolicitacao;
 window.excluirSolicitacao = excluirSolicitacao;
