@@ -67,7 +67,7 @@ Sistema web para gerenciamento de solicitações de portaria em condomínios. Pe
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/Marcos36561/solicitacoes-portaria.git
+git clone https://github.com/Marcos36561/solicitacao-portaria.git
 cd solicitacoes-portaria
 ```
 
