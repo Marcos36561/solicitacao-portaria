@@ -62,7 +62,7 @@ Sistema web para gerenciamento de solicitações de portaria em condomínios. Pe
 ### Pré-requisitos
 
 - Python 3.10+
-- PostgreSQL instalado e rodando
+- Docker e Docker Compose
 
 ### 1. Clone o repositório
 
@@ -91,19 +91,25 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edite o arquivo `.env` com as credenciais do seu banco de dados:
+Edite o arquivo `.env` com as credenciais do banco definido no `docker-compose.yml`:
 
 ```env
-DATABASE_URL=postgresql://usuario:senha@localhost:5432/nome_do_banco
+DATABASE_URL=postgresql://portaria_user:portaria_pass@localhost:5432/portaria
 ```
 
-### 5. Crie o banco de dados e rode as migrações
+### 5. Suba o banco pelo Docker
+
+```bash
+docker compose up -d db
+```
+
+### 6. Rode as migrações
 
 ```bash
 flask db upgrade
 ```
 
-### 6. Inicie o servidor
+### 7. Inicie o servidor
 
 ```bash
 python run.py

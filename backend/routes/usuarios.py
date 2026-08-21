@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from ..extensions import db
 from ..models import Usuario
 
-auth_bp = Blueprint('auth', __name__)
+usuarios_bp = Blueprint('usuarios', __name__)
 
 
 def gerar_token(usuario):
@@ -13,7 +13,7 @@ def gerar_token(usuario):
     return serializer.dumps({"usuario_id": usuario.id, "email": usuario.email})
 
 
-@auth_bp.route('/auth/cadastro', methods=['POST'])
+@usuarios_bp.route('/usuarios/cadastro', methods=['POST'])
 def cadastrar_usuario():
     try:
         data = request.get_json() or {}
@@ -46,7 +46,7 @@ def cadastrar_usuario():
         return jsonify({"error": "Erro ao cadastrar usuário", "message": str(e)}), 500
 
 
-@auth_bp.route('/auth/login', methods=['POST'])
+@usuarios_bp.route('/usuarios/login', methods=['POST'])
 def login():
     try:
         data = request.get_json() or {}
