@@ -68,3 +68,16 @@ def login():
 
     except Exception as e:
         return jsonify({"error": "Erro ao fazer login", "message": str(e)}), 500
+
+
+@usuarios_bp.route('/usuarios', methods=['GET'])
+def listar_usuarios():
+    try:
+        usuarios = Usuario.query.order_by(Usuario.nome).all()
+        return jsonify([usuario.to_dict() for usuario in usuarios]), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": "Erro ao listar usuários",
+            "message": str(e)
+        }), 500
