@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
-from itsdangerous import URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
+import jwt
+from datetime import datetime, timedelta, timezone
 
 from ..extensions import db
 from ..models import Usuario
@@ -9,8 +10,18 @@ usuarios_bp = Blueprint('usuarios', __name__)
 
 
 def gerar_token(usuario):
-    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    return serializer.dumps({"usuario_id": usuario.id, "email": usuario.email})
+    payload = {
+        "usuario_id": usuario.id,
+        "email": usuario.email,
+        "is_admin": usuario.is_admin,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=24)
+    }
+
+    return jwt.encode(
+        payload,
+        current_app.config['SECRET_KEY'],
+        algorithm="HS256"
+    )
 
 
 @usuarios_bp.route('/usuarios/cadastro', methods=['POST'])
