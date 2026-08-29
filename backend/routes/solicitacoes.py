@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
-
 from ..extensions import db
 from ..models import Solicitacao, Condominio
 from ..utils.datetime_utils import parse_datetime
+from ..utils.auth_utils import token_required
 
 solicitacoes_bp = Blueprint('solicitacoes', __name__)
 
