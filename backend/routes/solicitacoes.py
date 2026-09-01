@@ -66,6 +66,7 @@ def cadastrar_solicitacao():
 
 
 @solicitacoes_bp.route('/solicitacoes', methods=['GET'])
+@token_required
 def listar_solicitacoes():
     try:
         solicitacoes = Solicitacao.query.filter_by(is_deleted=False).all()
